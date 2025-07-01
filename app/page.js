@@ -15,14 +15,22 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-indigo-100 to-white flex flex-col items-center justify-center px-4 py-8">
-      <div className="bg-white shadow-xl rounded-xl max-w-md w-full p-6 sm:p-10">
-        <h1 className="text-3xl sm:text-4xl font-bold text-center text-indigo-700 mb-6">
+    <main className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-gray-100 flex items-center justify-center px-6 py-16 relative overflow-hidden">
+      {/* Radial glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-black/5 via-transparent to-transparent" />
+
+      {/* Content Card */}
+      <div className="relative z-10 max-w-lg w-full bg-white border border-gray-200 rounded-2xl shadow-lg p-8 sm:p-10 text-center space-y-6">
+        <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
           Welcome to CampusConnect
         </h1>
+        <p className="text-sm text-gray-600 max-w-md mx-auto">
+          A modern space to discover resources, connect with peers, and engage in your campus community.
+        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+        {/* College Selection Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="text-left">
             <label
               htmlFor="college"
               className="block text-sm font-medium text-gray-700 mb-1"
@@ -33,7 +41,7 @@ export default function Home() {
               id="college"
               value={selectedCollege}
               onChange={(e) => setSelectedCollege(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black transition"
               required
             >
               <option value="">-- Choose College --</option>
@@ -45,11 +53,16 @@ export default function Home() {
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition"
+            className="w-full bg-black text-white px-5 py-2.5 text-sm font-medium rounded-md hover:bg-gray-900 transition"
           >
             Enter Campus
           </button>
         </form>
+
+        {/* Optional tagline or link */}
+        <p className="text-xs text-gray-400">
+          Powered by CampusCrate • Your digital campus toolkit
+        </p>
       </div>
     </main>
   );

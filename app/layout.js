@@ -1,8 +1,9 @@
 import { SessionProvider } from "next-auth/react";
 
 import "./globals.css";
-import AuthProvider from "@/component/AuthProvide";
+import AuthProvider from "@/components/AuthProvider";
 
+ 
 export default function RootLayout({ children }){
   return (
     <html lang="en">

@@ -1,0 +1,1055 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, serverTimestamp, query ,  orderBy, limit, getDoc, onSnapshot } from 'firebase/firestore';
+import { useSession } from 'next-auth/react';
+import { request } from 'http';
+
+
+
+export default function MarketplacePage() {
+  const { data: session, status } = useSession();
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    price: '',
+    contact: '',
+  });
+  const [file, setFile] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+const [googleResults, setGoogleResults] = useState([]);
+const [messageTarget, setMessageTarget] = useState(null);
+const [messageText, setMessageText] = useState('');
+const [recentSearches, setRecentSearches] = useState([]);
+const [formRequest, setFormRequest] = useState({
+  title_2: '',
+  description_2: '',
+})
+const [chatReceiverEmail, setChatReceiverEmail] = useState('');
+const [requests, setRequests] = useState([]);
+const [isChatOpen, setIsChatOpen] = useState(false);
+const [activeRequestId, setActiveRequestId] = useState(null);
+const [chatMessages, setChatMessages] = useState([]);
+const [chatInput, setChatInput] = useState('');
+const [chatFile, setChatFile] = useState(null);
+
+const chatUnsubscribeRef = useRef(null);
+  const bottomRef = useRef(null);
+
+ 
+const openChatBox = (requestId, requesterEmail)=> {
+  setIsChatOpen(true);
+  setActiveRequestId(requestId);
+    setChatReceiverEmail(requesterEmail);
+  
+  if (typeof chatUnsubscribeRef.current === 'function') {
+  chatUnsubscribeRef.current(); 
+  chatUnsubscribeRef.current = null;
+}
+
+
+  // Set new listener
+  chatUnsubscribeRef.current = loadChatMessages(requestId);
+}
+const closeChatBox = () => {
+  setIsChatOpen(false);
+  setChatMessages([]);
+  setActiveRequestId(null);
+  setChatReceiverEmail('');
+ if (typeof chatUnsubscribeRef.current === 'function') {
+  chatUnsubscribeRef.current();
+  chatUnsubscribeRef.current = null;
+}
+
+};
+
+
+const sendChatMessage = async()=> {
+  if (!chatInput.trim() && !chatFile) return;
+  if (!activeRequestId || !session?.user?.email) return;
+  let fileUrl = '';
+  let fileType = '';
+  let fileName = '';
+
+    if (chatFile) {
+    const formData = new FormData();
+    formData.append('file', chatFile);
+    formData.append('upload_preset', 'campusconnect_marketplace'); 
+
+    try {
+      const res = await fetch('https://api.cloudinary.com/v1_1/dajndivjw/auto/upload?resource_type=auto', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      fileUrl = data.secure_url;
+      fileType = chatFile.type;
+      fileName = chatFile.name;
+    } catch (err) {
+      console.error('File upload failed:', err);
+      alert('Failed to upload file');
+      return;
+    }
+  }
+
+  await addDoc(collection(db, 'requestChats', activeRequestId, 'messages'), {
+    sender: session.user.email,
+    text: chatInput,
+    fileUrl: fileUrl || '',
+    fileType: fileType || '',
+    fileName: fileName || '',
+    timestamp: serverTimestamp(),
+  })
+  setChatInput('');
+  loadChatMessages(activeRequestId);
+  setChatFile(null);
+}
+
+const loadChatMessages = async (requestId)=> {
+   const unsubscribe = onSnapshot(
+    query(
+      collection(db, 'requestChats', requestId, 'messages'),
+      orderBy('timestamp', 'asc')
+    ),
+    (snapshot) => {
+      const msgs = snapshot.docs.map(doc => doc.data());
+      setChatMessages(msgs);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+  );
+
+  return unsubscribe;
+}
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setFormRequest({ ...formRequest, [e.target.name]: e.target.value});
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (status !== 'authenticated') return alert('Please sign in');
+
+    let imageUrl = '';
+
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'campusconnect_marketplace');
+      try {
+        const res = await fetch('https://api.cloudinary.com/v1_1/dajndivjw/auto/upload?resource_type=raw', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        imageUrl = data.secure_url || '';
+      } catch (err) {
+        console.error('Image upload failed:', err);
+        return alert('Failed to upload image');
+        imageUrl = '';
+      }
+    }
+
+    await addDoc(collection(db, 'marketplace'), {
+    ...form,
+  imageUrl: imageUrl || '',
+  fileType: file?.type || '',
+  fileName: file?.name || '',
+  userEmail: session.user.email,
+   timestamp: serverTimestamp(),
+  status: 'available',
+  postedAt: serverTimestamp(),
+    });
+
+    setForm({ title: '', description: '', category: '', price: '', contact: '' });
+    setFile(null);
+    fetchItems();
+  };
+
+  const handleSubmitTwo = async(e)=> {
+      e.preventDefault();
+     if (status !== 'authenticated') return alert('Please sign in');
+
+         await addDoc(collection(db, 'RequestSection'), {
+    ...formRequest,
+  userEmail: session.user.email,
+   timestamp: serverTimestamp(),
+  postedAt: serverTimestamp(),
+    });
+     setFormRequest({ title_2: '', description_2: '' });
+     fetchRequests();
+  }
+  const fetchRequests = async ()=> {
+    const querySnapshot = await getDocs(collection(db, 'RequestSection'));
+    const allRequests = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))
+    setRequests(allRequests);
+    
+  }
+
+  const fetchItems = async () => {
+    const querySnapshot = await getDocs(collection(db, 'marketplace'));
+    const allItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setItems(allItems);
+  };
+
+   const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, "marketplace", id));
+      fetchItems();
+    }catch(err){
+      console.error("error deleting item ", err);
+    }
+   }
+
+   const handleEdit = (item)=> {
+    setForm({
+      title: item.title,
+    description: item.description ,
+    category: item.category,
+    price: item.price,
+    contact: item.contact,
+
+    }); 
+    setEditingId(item.id)
+   }
+
+   const handleSave = async(id) => {
+    try {
+      const itemRef = doc(db, "marketplace", id);
+      await updateDoc(itemRef, form); 
+      setEditingId(null);
+       setForm({ title: '', description: '', category: '', price: '', contact: '' });
+       fetchItems();
+
+    } catch(error){
+      console.error("Error updating item: ", error);
+    }
+  }
+   
+  const handleToggleStatus =async(item)=> {
+    try{
+    const ref = doc(db, 'marketplace', item.id);
+    const newStatus = item.status === 'sold'? 'available':'sold';
+    await updateDoc(ref, {status: newStatus});
+    console.log("Item object:", item);
+
+    fetchItems();
+  
+
+    } catch(err){
+      console.error("Failed to update item status:", err)
+    }
+  }
+
+  
+     const handleSearch = async()=> {
+      
+  
+      if(!googleSearch.trim()) return; 
+  
+      try {
+          const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleSearch)}`);
+          const data = await res.json();
+  
+          const books = data.items?.map((book)=> { 
+            const info = book.volumeInfo;
+            const access = book.accessInfo;
+          return {
+          title: info.title,
+          authors: info.authors,
+          thumbnail: info.imageLinks?.thumbnail,
+          previewLink: info.previewLink,
+          pdfAvailable: access.pdf?.isAvailable,
+          pdfLink: access.pdf?.acsTokenLink || null,
+        };
+          }) || [];
+          setGoogleResults(books);
+  
+  
+          await addDoc(collection(db, 'searchLogs'), {
+    term: googleSearch.trim(),
+    timestamp: serverTimestamp(),
+  });
+  
+      }catch(err){
+            console.error("Google Books API failed:", err);
+            setGoogleResults([]);
+      }
+     }
+  
+
+   const handleSendMessage = async () => {
+  if (!messageText.trim()) return;
+
+  try {
+    await addDoc(collection(db, 'messages'), {
+      sender: session.user.email,
+      receiver: messageTarget.userEmail,
+      itemId: messageTarget.id,
+      itemTitle: messageTarget.title,
+      message: messageText,
+      timestamp: serverTimestamp(),
+    });
+
+    alert("Message sent!");
+    setMessageTarget(null);
+    setMessageText('');
+  } catch (err) {
+    console.error("Failed to send message:", err);
+  }
+};
+
+const fetchRecentSearches = async () => {
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'searchLogs'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    )
+  );
+
+  const terms = snapshot.docs.map(doc => doc.data().term);
+  console.log("Fetched recent searches:", terms); 
+  setRecentSearches(terms);
+};
+
+
+
+
+
+
+  useEffect(() => {
+    if (status === 'authenticated') 
+      {fetchItems();
+      fetchRecentSearches();
+      fetchRequests();
+      }
+  }, [status]);
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-white to-blue-50 px-6 py-10">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-indigo-700 mb-6 text-center">📦 CampusCrate - Marketplace</h1>
+
+
+        {recentSearches.length > 0 && (
+  <div className="bg-white p-4 mb-6 rounded shadow border max-w-xl mx-auto">
+    <h2 className="text-lg font-semibold mb-2 text-indigo-700">🧠 Students Recently Searched</h2>
+    <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+      {recentSearches.map((term, i) => (
+        <li key={i}>
+          {term.length > 40 ? term.slice(0, 40) + '…' : term}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+        {/*================================================ Form ====================================================*/}
+          {/* <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
+          <input type="text" name="title" placeholder="Item Name" value={form.title} onChange={handleChange} required className="w-full border p-2 rounded" />
+          <textarea name="description" placeholder="Description" value={form.description} onChange={handleChange} required className="w-full border p-2 rounded" />
+          <select name="category" value={form.category} onChange={handleChange} required className="w-full border p-2 rounded">
+            <option value="">Select Category</option>
+            <option value="Books">Books</option>
+            <option value="Notes">Notes</option>
+            <option value="Stationery">Stationery</option>
+            <option value="Free">Free</option>
+            <option value="For Sale">For Sale</option>
+          </select>
+          <input type="text" name="price" placeholder="Price or 'Free'" value={form.price} onChange={handleChange} required className="w-full border p-2 rounded" />
+          <input type="text" name="contact" placeholder="Your Email or Phone" value={form.contact} onChange={handleChange} required className="w-full border p-2 rounded" />
+          <input type="file" accept="application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint,
+text/plain, application/pdf, image/*" onChange={(e) => setFile(e.target.files[0])} className="w-full" />
+          <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Post Item</button>
+        </form> */}
+    
+<form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-lg space-y-6 max-w-xl mx-auto">
+  <h2 className="text-2xl font-semibold text-gray-800">Post an Item</h2>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1">Item Name</label>
+    <input
+      type="text"
+      name="title"
+      placeholder="Enter the item name"
+      value={form.title}
+      onChange={handleChange}
+      required
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+    <textarea
+      name="description"
+      placeholder="Describe the item in detail"
+      value={form.description}
+      onChange={handleChange}
+      required
+      rows={4}
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1">Category</label>
+    <select
+      name="category"
+      value={form.category}
+      onChange={handleChange}
+      required
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      <option value="">Select a category</option>
+      <option value="Books">Books</option>
+      <option value="Notes">Notes</option>
+      <option value="Stationery">Stationery</option>
+      <option value="Free">Free</option>
+      <option value="For Sale">For Sale</option>
+    </select>
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label className="block text-sm font-medium text-gray-600 mb-1">Price</label>
+      <input
+        type="text"
+        name="price"
+        placeholder="e.g. ₹100 or 'Free'"
+        value={form.price}
+        onChange={handleChange}
+        required
+        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-600 mb-1">Contact</label>
+      <input
+        type="text"
+        name="contact"
+        placeholder="Email or phone number"
+        value={form.contact}
+        onChange={handleChange}
+        required
+        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1">Upload File</label>
+    <input
+      type="file"
+      accept="application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint, text/plain, application/pdf, image/*"
+      onChange={(e) => setFile(e.target.files[0])}
+      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:rounded-lg file:bg-indigo-600 file:text-white file:cursor-pointer hover:file:bg-indigo-700"
+    />
+  </div>
+
+  <div className="text-right">
+    <button
+      type="submit"
+      className="bg-indigo-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-indigo-700 transition-all duration-200"
+    >
+      Post Item
+    </button>
+  </div>
+</form>
+
+
+
+        {/* Item List Placeholder */}
+        {/* <div className="mt-10 ">  
+          
+           
+           {items.length > 0 &&(
+            <>
+            <div className="mb-4 ">
+              <label className="block text-sm font-medium text-gray-700 mb-1 mt-7">Filter by Category</label>
+              <select value={selectedCategory} onChange={(e)=> setSelectedCategory(e.target.value)} className="border p-2 rounded w-full sm:w-64">
+                <option value=""> All Category</option>
+                <option value="Books"> Books</option>
+                <option value="Notes"> Notes</option>
+                <option value="Stationery"> Stationery</option>
+                <option value="Free">Free</option>
+               <option value="For Sale">For Sale</option>
+              </select>
+            </div>
+            
+            <div className="space-y-4"> */}
+
+      {/* ========== = = =   ==drop down for the caegory selection=================================== */}
+            <div className="mt-16 max-w-5xl mx-auto px-4">
+  {items.length > 0 && (
+    <>
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Category</label>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-700"
+        >
+          <option value="">All Categories</option>
+          <option value="Books">Books</option>
+          <option value="Notes">Notes</option>
+          <option value="Stationery">Stationery</option>
+          <option value="Free">Free</option>
+          <option value="For Sale">For Sale</option>
+        </select>
+      </div>
+ <div className="space-y-6">
+            
+
+
+{/* api intergartion bro  */}
+                           {/* <div>
+                              <input type='text' 
+                              value={searchTerm} 
+                              onChange={(e)=>setSearchTerm(e.target.value)}  
+                              placeholder="Search for a book..."
+                              className="border p-2 rounded w-full sm:w-96"></input>
+                              <button 
+                              onClick={handleSearch}
+                              className="ml-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Search</button>
+                            </div> */}
+
+{/* ==============the cards output============ */}
+            <h2 className="text-xl font-semibold mb-4  text-gray-700">📋 All Listings</h2>
+
+            <div className="grid gap-4 md:grid-cols-2">
+        
+            {items.filter(item => (!selectedCategory || item.category === selectedCategory)&&(!searchTerm || item.title.toLowerCase().includes(searchTerm.toLowerCase())) ).map((item, idx) => {
+              const isOwner = item.userEmail === session?.user?.email;
+              return(
+                  
+
+                <div key={idx} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm hover:shadow-md transition " >
+
+              
+                  <div > 
+                    {/* =========editing the cards========= */}
+                    {editingId === item.id && isOwner ? (
+                      <>
+                                  <input type="text" name="title" placeholder="Item Name" value={form.title} onChange={handleChange} required className="w-full border p-2 rounded" />
+                                      <textarea name="description" placeholder="Description" value={form.description} onChange={handleChange} required className="w-full border p-2 rounded" />
+                                      <select name="category" value={form.category} onChange={handleChange} required className="w-full border p-2 rounded">
+                                        <option value="">Select Category</option>
+                                        <option value="Books">Books</option>
+                                        <option value="Notes">Notes</option>
+                                        <option value="Stationery">Stationery</option>
+                                        <option value="Free">Free</option>
+                                        <option value="For Sale">For Sale</option>
+                                      </select>
+                                      <input type="text" name="price" placeholder="Price or 'Free'" value={form.price} onChange={handleChange} required className="w-full border p-2 rounded" />
+                                      <input type="text" name="contact" placeholder="Your Email or Phone" value={form.contact} onChange={handleChange} required className="w-full border p-2 rounded" />
+                                      {/* <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} className="w-full" /> */}
+                                      <input type="file" accept="application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint,
+                            text/plain, application/pdf, image/*" onChange={(e) => setFile(e.target.files[0])} className="w-full" />
+                            <div className="flex gap-3 mt-2">
+                              <button onClick={()=> handleSave(item.id)} className="text-sm text-green-600 hover:underline">Save</button>
+                              <button onClick={()=> setEditingId(null)} className="text-sm text-gray-600 hover:underline">Cancel</button>
+                            </div>
+
+
+                      </>
+                    ):(
+                      <>
+{/*========================= cards for the item selling =========================== */}
+
+                    {/* <div className="text-sm text-gray-600 mt-2 space-y-1">
+                       <h3 className="font-bold text-lg">{item.title}</h3>
+                  <p className="text-gray-700">{item.description}</p>
+                  <p className="text-sm mt-1">📂 {item.category}</p>
+                  <p className="text-sm mt-1">💰 {item.price}</p>
+                  <p className="text-sm mt-1">📞 {item.contact}</p>
+                  <p className={`text-sm font-medium mt-1 ${item.status === 'sold' ? 'text-red-600' : 'text-green-600'}`}> Status : {item.status ==='sold'? 'Sold' : 'Available'}</p>
+                   {item.postedAt?.seconds && (
+    <p className="text-gray-400">Posted on {new Date(item.postedAt.seconds * 1000).toLocaleDateString()}</p>
+  )}
+                  </div>
+          
+                    {item.imageUrl && item.fileType === 'application/pdf' && (
+                    <iframe
+                        src={item.imageUrl}
+                        className="w-full h-64 mt-3 border rounded"
+                        title="PDF Document"
+                    >
+                        This browser does not support PDFs. <a href={item.imageUrl}>Download PDF</a>
+                    </iframe>
+                    )}
+
+                    {item.imageUrl && !item.fileType?.startsWith('image/') && item.fileType !== 'application/pdf' && (
+                    <a
+                        href={item.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-block text-indigo-600 underline text-sm"
+                    >
+                        📄 Download {item.fileName || 'file'}
+                    </a>
+                    )}
+                    <p className="text-sm text-gray-500 mt-1">Posted by: {item.userEmail}</p> */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-2xl border border-gray-200 max-w-2xl mx-auto">
+  <div className="space-y-3">
+    <h3 className="text-2xl font-semibold text-gray-800">{item.title}</h3>
+    <p className="text-gray-700 leading-relaxed">{item.description}</p>
+
+    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+      <p><span className="font-medium">📂 Category:</span> {item.category}</p>
+      <p><span className="font-medium">💰 Price:</span> {item.price}</p>
+      <p><span className="font-medium">📞 Contact:</span> {item.contact}</p>
+      <p>
+        <span className="font-medium">📅 Posted:</span>{' '}
+        {item.postedAt?.seconds ? new Date(item.postedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+      </p>
+    </div>
+
+    <p
+      className={`text-sm font-semibold mt-2 px-3 py-1 inline-block rounded-full ${
+        item.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+      }`}
+    >
+      {item.status === 'sold' ? '🔴 Sold' : '🟢 Available'}
+    </p>
+
+    {item.imageUrl && item.fileType === 'application/pdf' && (
+      <iframe
+        src={item.imageUrl}
+        className="w-full h-64 mt-4 border rounded-lg"
+        title="PDF Document"
+      >
+        This browser does not support PDFs. <a href={item.imageUrl}>Download PDF</a>
+      </iframe>
+    )}
+
+    {item.imageUrl && !item.fileType?.startsWith('image/') && item.fileType !== 'application/pdf' && (
+      <a
+        href={item.imageUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-flex items-center text-indigo-600 hover:underline text-sm"
+      >
+        📄 Download {item.fileName || 'file'}
+      </a>
+    )}
+
+    {item.imageUrl && item.fileType?.startsWith('image/') && (
+      <img
+        src={item.imageUrl}
+        alt={item.title}
+        className="w-full mt-4 rounded-lg border"
+      />
+    )}
+
+    <div className="text-right mt-4">
+      <p className="text-sm text-gray-500 italic">Posted by: {item.userEmail}</p>
+    </div>
+  </div>
+</div>
+
+{/* ============buttons for the owner of the card ================= */}
+
+                    {isOwner? (
+                               <div className="flex gap-3 mt-3">
+                                <button onClick={() => handleEdit(item)} className="text-sm text-blue-600 hover:underline">
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDelete(item.id)} className="text-sm text-red-600 hover:underline">
+                                  Delete
+                                </button>
+
+                                  <button
+                                  onClick={() => handleToggleStatus(item)}
+                                  className="text-sm text-purple-600 hover:underline"
+                                >
+                                  Mark as {item.status === 'sold' ? 'Available' : 'Sold'}
+                                </button>
+
+                              </div>
+                              
+                    ):(
+                        <><p className="text-sm text-gray-500 italic">You can view this post.</p>
+                      </>
+                    )}
+
+
+{/* ============message the owner of the card =============== */}
+                    <button  onClick={() => setMessageTarget(item)}
+                             className="mt-2 inline-block px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">
+                      📩 Contact Seller
+                    </button>
+                      </>
+
+                    )}
+                  </div>
+                </div>
+                
+              )
+            }
+            )}
+            </div>
+
+
+
+
+            {/* API results  */}
+               <div>
+                              <input type='text' 
+                              value={googleSearch} 
+                              onChange={(e)=>setGoogleSearch(e.target.value)}  
+                              placeholder="Search for a book..."
+                              className="border p-2 rounded w-full sm:w-96"></input>
+                              <button 
+                              onClick={handleSearch}
+                              className="ml-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Search</button>
+                            </div>
+
+            {googleResults.length > 0 && (
+  <div className="mt-10">
+    <h2 className="text-xl font-semibold mb-4 text-gray-700">📖 External Book Results</h2>
+    <div className="grid gap-4 md:grid-cols-2">
+      {googleResults.map((book, i) => (
+        <div key={i} className="bg-white p-4 rounded shadow">
+          <h3 className="font-bold text-lg">{book.title}</h3>
+          {book.authors && <p className="text-sm text-gray-600">By: {book.authors.join(', ')}</p>}
+          {book.thumbnail && (
+            <img src={book.thumbnail} alt="Book Cover" className="w-32 mt-3 rounded" />
+          )}
+          <div className="mt-3 space-x-3">
+            <a
+              href={book.previewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:underline text-sm"
+            >
+              📖 Preview on Google Books
+            </a>
+            {book.pdfAvailable && book.pdfLink && (
+              <a
+                href={book.pdfLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-600 hover:underline text-sm"
+              >
+                📄 Download PDF
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+{/* End of api */}
+
+
+            </div>
+            </>
+           )}
+
+          
+        </div>
+        
+        {/* request something  */}
+         {/* <form onSubmit={handleSubmitTwo} className="bg-white p-6 rounded-lg shadow space-y-4">
+          <h1>Request</h1>
+          <input type="text" name="title_2" placeholder="Enter your request..." value={formRequest.title_2} onChange={handleChange} required className="w-full border p-2 rounded" />
+          <textarea name="description_2" placeholder="Describe what you need" value={formRequest.description_2} onChange={handleChange} required className="w-full border p-2 rounded" />
+          <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Submit Request</button>
+        </form> */}
+        <form onSubmit={handleSubmitTwo} className="bg-white p-8 rounded-2xl shadow-lg space-y-6 max-w-xl mx-auto">
+  <h2 className="text-2xl font-semibold text-gray-800">Request an Item</h2>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1">Item Name</label>
+    <input
+      type="text"
+      name="title_2"
+      placeholder="Enter the item name"
+      value={formRequest.title_2}
+      onChange={handleChange}
+      required
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+    <textarea
+      name="description_2"
+      placeholder="Describe the item in detail"
+      value={formRequest.description_2}
+      onChange={handleChange}
+      required
+      rows={4}
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+  </div>
+
+  <div className="text-right">
+    <button
+      type="submit"
+      className="bg-indigo-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-indigo-700 transition-all duration-200"
+    >
+      Submit Request
+    </button>
+  </div>
+</form>
+             
+             {/* request cards */}
+             <div className="mt-10">
+                <h2 className="text-xl font-semibold mb-4">All your Requests</h2>
+                {/* {requests.length === 0 ? (
+                  <p className="text-gray-500">No Requests yet.</p>
+                ):(
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {requests.map(request=> (
+                        <div key={request.id} className="bg-white p-4 rounded-lg shadow">
+                         <h3 className="font-bold text-lg">{request.title_2}</h3>
+                         <p className="text-gray-700">{request.description_2}</p>
+                         <p className="text-sm text-gray-500 mt-1">Posted by: {request.userEmail}</p>
+                         <button onClick={()=>openChatBox(request.id, request.userEmail)} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Chat</button>
+                        </div>   
+                        
+                    ))          
+                    } */}
+                    {requests.length === 0 ? (
+        <p className="text-gray-500 text-center text-lg">No Requests yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {requests.map((request) => (
+            <div
+              key={request.id}
+              className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border border-gray-200 p-6 flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  {request.title_2}
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {request.description_2}
+                </p>
+              </div>
+
+              <div className="mt-4 text-sm text-gray-500">
+                Posted by: <span className="italic">{request.userEmail}</span>
+              </div>
+
+              <button
+                onClick={() => openChatBox(request.id, request.userEmail)}
+                className="mt-5 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm shadow"
+              >
+                💬 Chat
+              </button>
+            </div>
+          ))}
+          
+                    {/* {isChatOpen && (
+                    <div className="fixed top-0 right-0 w-96 h-full bg-white shadow-lg z-50 flex flex-col border-l">
+                    <div className="p-4 border-b flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">Chat with: {chatReceiverEmail === session?.user?.email ? 'Yourself' : chatReceiverEmail}</h2>
+                      <button onClick={closeChatBox} className="text-gray-500 hover:text-red-500 text-xl">
+                        &times;
+                      </button>
+                    </div>
+
+                    <div className="flex-1 p-4 overflow-y-auto space-y-2">
+                      {chatMessages.map((msg, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-2 rounded ${
+                            msg.sender === session?.user?.email ? 'bg-indigo-100 text-right' : 'bg-gray-100 text-left'
+                          }`}
+                        >
+                          {msg.text && <p className="text-sm">{msg.text}</p>}
+    
+                          {msg.fileUrl && msg.fileType?.startsWith('image/') && (
+                            <img src={msg.fileUrl} alt="Sent File" className="w-40 h-auto mt-2 rounded" />
+                          )}
+
+                          {msg.fileUrl && msg.fileType === 'application/pdf' && (
+                            <iframe
+                              src={msg.fileUrl}
+                              className="w-full h-48 mt-2 rounded border"
+                              title="PDF Preview"
+                            />
+                          )}
+
+                          {msg.fileUrl && !msg.fileType?.startsWith('image/') && msg.fileType !== 'application/pdf' && (
+                            <a
+                              href={msg.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-indigo-600 underline mt-2 inline-block"
+                            >
+                              📄 Download {msg.fileName || 'file'}
+                            </a>
+                          )}
+                          <p className="text-xs text-gray-500">{msg.sender}</p>
+                        </div>
+                      ))}
+                <div ref={bottomRef} />
+                    </div>
+
+                      <div className="p-4 border-t">
+                        <input
+                          type="text"
+                          placeholder="Type your message..."
+                          className="w-full border p-2 rounded"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+                        />
+                        <input type="file" accept="application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint,
+text/plain, application/pdf, image/*" onChange={(e) => setChatFile(e.target.files[0])} className=" mt-2 w-full text-sm"  />
+                        <button
+                          onClick={sendChatMessage}
+                          className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 w-full"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                    )} */}
+                   {isChatOpen && (
+  <div className="fixed top-0 right-0 w-full sm:w-96 h-full bg-gradient-to-br from-white to-indigo-50 shadow-xl z-50 flex flex-col border-l border-indigo-200">
+    <div className="p-5 border-b border-indigo-200 flex justify-between items-center bg-white rounded-t-xl">
+      <h2 className="text-xl font-bold text-indigo-800">
+        💬 Chat with: {chatReceiverEmail !== session?.user?.email ? chatReceiverEmail : 'Unknown'}
+      </h2>
+      <button
+        onClick={closeChatBox}
+        className="text-gray-500 hover:text-red-600 text-2xl font-bold transition"
+        aria-label="Close chat"
+      >
+        &times;
+      </button>
+    </div>
+
+    <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-white/40">
+      {chatMessages.map((msg, idx) => (
+        <div
+          key={idx}
+          className={`max-w-[85%] p-3 rounded-lg shadow-sm text-sm ${
+            msg.sender === session?.user?.email
+              ? 'ml-auto bg-indigo-100 text-right text-indigo-900'
+              : 'mr-auto bg-gray-100 text-left text-gray-800'
+          }`}
+        >
+          {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
+
+          {msg.fileUrl && msg.fileType?.startsWith('image/') && (
+            <img src={msg.fileUrl} alt="Sent File" className="w-40 h-auto mt-2 rounded-lg border border-indigo-200" />
+          )}
+
+          {msg.fileUrl && msg.fileType === 'application/pdf' && (
+            <iframe
+              src={msg.fileUrl}
+              className="w-full h-48 mt-2 rounded-lg border border-indigo-300"
+              title="PDF Preview"
+            />
+          )}
+
+          {msg.fileUrl && !msg.fileType?.startsWith('image/') && msg.fileType !== 'application/pdf' && (
+            <a
+              href={msg.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:underline mt-2 inline-block"
+            >
+              📄 Download {msg.fileName || 'file'}
+            </a>
+          )}
+
+          <p className="text-xs text-gray-500 mt-1 italic">
+            {msg.sender === session?.user?.email ? 'You' : msg.sender}
+          </p>
+        </div>
+      ))}
+      <div ref={bottomRef} />
+    </div>
+
+    <div className="p-4 border-t border-indigo-200 bg-white rounded-b-xl">
+      <input
+        type="text"
+        placeholder="Type your message..."
+        className="w-full border border-indigo-300 focus:ring-2 focus:ring-indigo-400 p-2 rounded-lg shadow-sm text-sm"
+        value={chatInput}
+        onChange={(e) => setChatInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+      />
+
+      <label className="block mt-3">
+        <span className="text-sm text-gray-700">📎 Attach a file</span>
+        <div className="mt-1 flex items-center justify-between border border-indigo-300 rounded-lg p-2 bg-white hover:shadow-sm transition">
+          <input
+            type="file"
+            accept="application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint, text/plain, application/pdf, image/*"
+            onChange={(e) => setChatFile(e.target.files[0])}
+            className="text-sm text-gray-700 focus:outline-none w-full file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+          />
+        </div>
+      </label>
+
+      <button
+        onClick={sendChatMessage}
+        className="mt-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:from-indigo-600 hover:to-blue-600 w-full text-sm font-medium shadow-md"
+      >
+        🚀 Send
+      </button>
+    </div>
+  </div>
+)}
+                    </div>
+                    
+                )}
+                
+             </div>
+
+
+         {/* requesting section ends here  */}
+      </div>
+ 
+      {/* messaging area */}
+
+{messageTarget && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-md">
+      <h2 className="text-xl font-semibold mb-4">Send Message to Seller</h2>
+      <p className="text-gray-700 mb-2">
+        <strong>Item:</strong> {messageTarget.title}
+      </p>
+      <textarea
+        rows={3}
+        className="w-full border p-2 rounded"
+        placeholder="Write your message..."
+        value={messageText}
+        onChange={(e) => setMessageText(e.target.value)}
+      />
+      <div className="flex justify-end mt-4 gap-3">
+        <button onClick={() => setMessageTarget(null)} className="text-gray-600 hover:underline">Cancel</button>
+        <button onClick={handleSendMessage} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+          Send
+        </button>
+        
+        
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+    </main>
+  )
+  ;
+}
+ 
