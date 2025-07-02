@@ -509,7 +509,7 @@ const fetchRecentSearches = async () => {
       📋 All Listings
     </h2>
     <p className="mt-2 text-sm text-gray-600 max-w-md mx-auto">
-      Explore what's available from students across campus — from textbooks to tech gear.
+      Explore what&apos;s available from students across campus — from textbooks to tech gear.
     </p>
   </div>
 
@@ -828,7 +828,7 @@ const fetchRecentSearches = async () => {
       🎯 Request an Item
     </h2>
     <p className="text-sm text-gray-600 mt-1 max-w-md mx-auto">
-      Need something specific? Let your campus know what you're looking for.
+      Need something specific? Let your campus know what you&apos;re looking for.
     </p>
   </div>
 
