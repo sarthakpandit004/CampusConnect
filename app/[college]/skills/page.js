@@ -11,6 +11,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import StickyNavbar from '@/components/StickyNavbar';
 
+
 import Link from 'next/link';
 
 export default function SkillSwapPage() {
@@ -237,14 +238,14 @@ formData.append("cloud_name", "dajndivjw");
       });
     }
 
-    fetchRequests(); // refresh after update
+    fetchRequests(); 
   } catch (err) {
     console.error("Failed to update request status:", err);
   }
 };
 
 async function ensureChatRoom({ skillId, skillTitle, senderEmail, receiverEmail }) {
-  // 1. Look for an existing room **by skillId**
+
   const q = query(
     collection(db, "chatRooms"),
     where("skillId", "==", skillId)
@@ -252,15 +253,15 @@ async function ensureChatRoom({ skillId, skillTitle, senderEmail, receiverEmail 
   const snap = await getDocs(q);
 
   if (!snap.empty) {
-    // 2. Room exists – just add the new participant if missing
+    
     const roomRef = snap.docs[0].ref;
     await updateDoc(roomRef, {
-      participants: arrayUnion(senderEmail)   // adds only if not already there
+      participants: arrayUnion(senderEmail)  
     });
     return roomRef.id;
   }
 
-  // 3. No room yet – create it
+ 
   const docRef = await addDoc(collection(db, "chatRooms"), {
     name: skillTitle,
     createdBy: receiverEmail,
@@ -358,7 +359,7 @@ const handleCancelBooking = async (id) => {
     const bookingRef = doc(db, 'bookings', id);
     await updateDoc(bookingRef, { status: 'cancelled' });
     alert('Booking cancelled.');
-    fetchBookings(); // refresh list
+    fetchBookings(); 
   } catch (err) {
     console.error('Cancel failed:', err);
     alert('Something went wrong. Try again.');
@@ -380,7 +381,7 @@ const handleRescheduleBooking = async () => {
 
     alert('Booking updated.');
     setRescheduleModalOpen(false);
-    fetchBookings(); // refresh view
+    fetchBookings(); 
   } catch (err) {
     console.error("Reschedule failed:", err);
     alert("Something went wrong. Try again.");
@@ -404,6 +405,7 @@ const handleRescheduleBooking = async () => {
 
   return (
     <>
+    
     <StickyNavbar></StickyNavbar>
     <main className="min-h-screen bg-gradient-to-br from-white to-neutral-100 px-4 py-10 md:px-6 xl:px-0">
   <div className="max-w-7xl mx-auto">
@@ -436,16 +438,14 @@ const handleRescheduleBooking = async () => {
 
 
 <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-x-10 gap-y-12">
-  {/* Sidebar Filters */}
+  
   <aside className="sticky top-7 md:self-start bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
-    
-    {/* Category Title */}
+   
     <div>
       <h3 className="text-sm font-semibold text-gray-800 tracking-wide uppercase mb-3 border-b pb-2 border-gray-200">
         🗂 Browse Categories
       </h3>
 
-      {/* Category List */}
       <ul className="space-y-2 text-sm text-gray-600">
         <li className="cursor-pointer hover:text-black hover:underline transition">Programming</li>
         <li className="cursor-pointer hover:text-black hover:underline transition">Design</li>
@@ -457,26 +457,24 @@ const handleRescheduleBooking = async () => {
   </aside>
 
 
-          {/* Main Content */}
-          <section className="space-y-12">
-  {/* Offer a Skill */}
+       
+     <section className="space-y-12">
   <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
     <h2 className="text-2xl font-semibold text-gray-900 tracking-tight border-b border-gray-200 pb-3 mb-6">
       Offer a Skill
     </h2>
 
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 space-y-8 md:space-y-0">
-  {/* Left Column */}
-  <div className="flex flex-col space-y-5">
-    <input
-      type="text"
-      name="title"
-      value={form.title}
-      onChange={handleChange}
-      placeholder="e.g. Figma for Beginners"
-      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black transition"
-      required
-    />
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 space-y-8 md:space-y-0">
+          <div className="flex flex-col space-y-5">
+            <input
+              type="text"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="e.g. Figma for Beginners"
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black transition"
+              required
+            />
 
     <textarea
       name="description"
@@ -513,7 +511,7 @@ const handleRescheduleBooking = async () => {
     </select>
   </div>
 
-  {/* Right Column */}
+  
   <div className="flex flex-col space-y-6">
     <input
       name="Documents"
@@ -534,7 +532,7 @@ const handleRescheduleBooking = async () => {
 
             </section>
 
-            {/* Filter by Category Selection */}
+         
             {skills.length > 0 && (
              <section className="mb-10">
     <div className="flex flex-wrap items-end gap-4">
@@ -561,7 +559,7 @@ const handleRescheduleBooking = async () => {
       All Skills
   </h3>
 
-                  {/* Skill Cards Grid */}
+              
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
   {skills
     .filter(skill => !selectedCategory || skill.category === selectedCategory)
@@ -573,9 +571,8 @@ const handleRescheduleBooking = async () => {
           key={idx}
           className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition p-6 flex flex-col justify-between min-h-[280px]"
         >
-          {/* ──────────────────── Card Body ──────────────────── */}
           <div className="space-y-3">
-            {/* ───────────── Edit Mode ───────────── */}
+          
             {editingId === skill.id && isOwner ? (
               <>
                 <input
@@ -629,7 +626,7 @@ const handleRescheduleBooking = async () => {
                 </div>
               </>
             ) : (
-              /* ───────────── View Mode ───────────── */
+              
               <>
                 <h4 className="text-lg font-semibold text-gray-900">
                   {skill.title}
@@ -650,7 +647,7 @@ const handleRescheduleBooking = async () => {
                   🧑‍🎓 Posted by: {skill.userEmail || 'Unknown'}
                 </p>
 
-                {/* ───────────── Media Preview ───────────── */}
+                
                 {skill.mediaUrl && skill.mediaType === 'video' && (
                   <video
                     controls
@@ -669,7 +666,7 @@ const handleRescheduleBooking = async () => {
                   />
                 )}
 
-                {/* ───────────── Actions ───────────── */}
+  
                 {isOwner ? (
                   <div className="flex gap-4 mt-4">
                     <button
@@ -710,7 +707,7 @@ const handleRescheduleBooking = async () => {
             )}
           </div>
 
-          {/* ──────────────────── Department Tag ──────────────────── */}
+          
           <div className="mt-5 inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
             🎓 {skill.department || 'CS Dept'}
           </div>
@@ -723,7 +720,7 @@ const handleRescheduleBooking = async () => {
               </section>
             )}
 
-            {/* Bookings Section */}
+          
             <section className="mt-16 space-y-8" id='your-bookings'>
   <h3 className="text-3xl font-bold text-gray-900 tracking-tight border-b border-gray-200 pb-3">
     Your Bookings
@@ -746,7 +743,7 @@ const handleRescheduleBooking = async () => {
             key={i}
             className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all p-6 space-y-4"
           >
-            {/* Header */}
+      
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h4 className="text-lg font-semibold text-gray-900">
                 {booking.skillTitle}
@@ -766,7 +763,7 @@ const handleRescheduleBooking = async () => {
               </span>
             </div>
 
-            {/* Details */}
+        
             <div className="grid sm:grid-cols-2 gap-y-2 text-sm text-gray-700">
               <p>
                 <span className="font-medium">Time:</span>{' '}
@@ -785,7 +782,7 @@ const handleRescheduleBooking = async () => {
             </div>
             
 
-            {/* Actions */}
+           
             <div className="pt-2 flex flex-wrap items-center gap-4">
               {isConfirmed && (
                 <button
@@ -813,10 +810,8 @@ const handleRescheduleBooking = async () => {
   )}
 </section>
 
-
-            {/* Requests Section - Incoming/Outgoing */}
             <section className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-10">
-  {/* Incoming Requests */}
+
   <div>
   <h3 className="text-2xl font-semibold text-gray-900 tracking-tight mb-4 border-b border-gray-200 pb-3">
     Incoming Requests
@@ -877,7 +872,7 @@ const handleRescheduleBooking = async () => {
 </div>
 
 
-  {/* Outgoing Requests */}
+ 
   <div>
   <h3 className="text-2xl font-semibold text-gray-900 tracking-tight mb-4 border-b border-gray-200 pb-3">
     Sent Requests
@@ -922,7 +917,6 @@ const handleRescheduleBooking = async () => {
 
 </section>
 
-            {/* Calendar Section */}
            <section className="mt-16">
   <h3 className="text-2xl font-semibold text-gray-900 tracking-tight mb-6 border-b border-gray-200 pb-3 flex items-center gap-2">
     🗓 Calendar View
@@ -942,7 +936,6 @@ const handleRescheduleBooking = async () => {
           </section>
         </div>
 
-        {/* Booking & Reschedule Modals - Modals float above everything*/}
         {bookingModalOpen && selectedSkillForBooking && (
   <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
     <div className="bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-6 transition-all">
@@ -963,7 +956,6 @@ const handleRescheduleBooking = async () => {
         </p>
       </div>
 
-      {/* Date Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Select Time</label>
         <input
@@ -974,7 +966,6 @@ const handleRescheduleBooking = async () => {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-3 pt-2">
         <button
           onClick={() => setBookingModalOpen(false)}
@@ -997,7 +988,7 @@ const handleRescheduleBooking = async () => {
   <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
     <div className="bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-6 transition-all">
 
-      {/* Header */}
+      
       <div className="space-y-1">
         <h2 className="text-xl font-semibold text-gray-900">
           🔁 Reschedule Booking
@@ -1010,7 +1001,6 @@ const handleRescheduleBooking = async () => {
         </p>
       </div>
 
-      {/* Time Picker */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           New Time
@@ -1023,7 +1013,6 @@ const handleRescheduleBooking = async () => {
         />
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-end gap-3 pt-2">
         <button
           onClick={() => setRescheduleModalOpen(false)}

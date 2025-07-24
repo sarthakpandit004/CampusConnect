@@ -28,6 +28,27 @@
   "@supabase/supabase-js": "^2.49.10",
   
     
+  "@tailwindcss/typography": "^0.5.16",
+  
+    
+  "@tiptap/extension-bullet-list": "^3.0.7",
+  
+    
+  "@tiptap/extension-heading": "^3.0.7",
+  
+    
+  "@tiptap/extension-list-item": "^3.0.7",
+  
+    
+  "@tiptap/extension-paragraph": "^3.0.7",
+  
+    
+  "@tiptap/react": "^3.0.7",
+  
+    
+  "@tiptap/starter-kit": "^3.0.7",
+  
+    
   "@uploadthing/react": "^7.3.1",
   
     
@@ -46,13 +67,7 @@
   "next-auth": "^4.24.11",
   
     
-  "react": "^19.1.0",
-  
-    
   "react-big-calendar": "^1.19.2",
-  
-    
-  "react-dom": "^19.1.0",
   
     
   "uploadthing": "^7.7.2"

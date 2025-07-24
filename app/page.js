@@ -16,10 +16,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-gray-100 flex items-center justify-center px-6 py-16 relative overflow-hidden">
-      {/* Radial glow */}
+     
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-black/5 via-transparent to-transparent" />
-
-      {/* Content Card */}
+  
       <div className="relative z-10 max-w-lg w-full bg-white border border-gray-200 rounded-2xl shadow-lg p-8 sm:p-10 text-center space-y-6">
         <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
           Welcome to CampusConnect
@@ -28,7 +27,7 @@ export default function Home() {
           A modern space to discover resources, connect with peers, and engage in your campus community.
         </p>
 
-        {/* College Selection Form */}
+      
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="text-left">
             <label
@@ -59,7 +58,6 @@ export default function Home() {
           </button>
         </form>
 
-        {/* Optional tagline or link */}
         <p className="text-xs text-gray-400">
           Powered by CampusCrate • Your digital campus toolkit
         </p>

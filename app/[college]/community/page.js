@@ -6,15 +6,18 @@ import ChatBox from './components/ChatBox';
 import Link from 'next/link';
 import StickyNavbar from '@/components/StickyNavbar';
 
+
 export default function CommunityPage() {
   const [selectedRoom, setSelectedRoom] = useState(null);
 
   return (
     <>
+    
     <StickyNavbar></StickyNavbar>
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-gray-100 px-6 py-12">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    
+
         <header className="relative text-center mb-16 py-12 px-6 bg-gradient-to-br from-neutral-50 via-white to-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-gray-200/20 via-transparent to-transparent" />
           <div className="relative z-10 max-w-4xl mx-auto">
@@ -27,14 +30,15 @@ export default function CommunityPage() {
           </div>
         </header>
 
-        {/* Chat Layout */}
+     
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Sidebar: Chat Room List */}
+
+  
           <aside className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
             <ChatRoomList onSelectRoom={setSelectedRoom} />
           </aside>
 
-          {/* Main Chat Box */}
+       
           <section className="md:col-span-2 bg-white border border-gray-200 rounded-2xl shadow-sm p-6 min-h-[500px]">
             {selectedRoom ? (
               <ChatBox room={selectedRoom} />
@@ -44,6 +48,7 @@ export default function CommunityPage() {
               </div>
             )}
           </section>
+
         </div>
       </div>
     </main>

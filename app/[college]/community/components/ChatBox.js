@@ -91,12 +91,9 @@ console.log("Trying to subscribe to messages for room:", room?.id);
 
  return (
     <div className="flex flex-col h-[500px] bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="border-b border-gray-200 px-6 py-4">
         <h2 className="text-base font-semibold text-gray-900">#{room.name}</h2>
       </div>
-
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50">
         {messages.map((msg) => {
           const isOwnMessage = msg.sender === session?.user?.email;
@@ -130,8 +127,6 @@ console.log("Trying to subscribe to messages for room:", room?.id);
 })}
         <div ref={bottomRef} />
       </div>
-
-      {/* Input */}
       <div className="border-t border-gray-200 px-4 py-3 bg-white">
         <div className="flex items-center gap-3">
           <input

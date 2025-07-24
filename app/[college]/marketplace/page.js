@@ -9,6 +9,7 @@ import StickyNavbar from '@/components/StickyNavbar';
 
 
 
+
 export default function MarketplacePage() {
   const { data: session, status } = useSession();
   const [items, setItems] = useState([]);
@@ -58,7 +59,6 @@ const openChatBox = (requestId, requesterEmail)=> {
 }
 
 
-  // Set new listener
   chatUnsubscribeRef.current = loadChatMessages(requestId);
 }
 const closeChatBox = () => {
@@ -334,17 +334,18 @@ const fetchRecentSearches = async () => {
 
   return (
     <>
+    
     <StickyNavbar></StickyNavbar>
     <main  className="min-h-screen bg-gradient-to-br from-white to-neutral-100 px-6 py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Heading */}
+        
         <header className="relative text-center mb-16 py-12 px-6 bg-gradient-to-br from-neutral-50 via-white to-gray-100 rounded-2xl shadow-sm overflow-hidden">
   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-gray-200/20 via-transparent to-transparent"></div>
 
   <div className="relative z-10">
     <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
-      🎓 CampusCrate
+       CampusCrate
       <span className="text-black"> Marketplace</span>
     </h1>
     <p className="mt-4 text-sm text-gray-600 max-w-xl mx-auto">
@@ -362,11 +363,9 @@ const fetchRecentSearches = async () => {
 
 
 
-        {/* Main Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-10">
-          {/* LEFT COLUMN */}
-          <section className="space-y-16">
-            {/* Post Item Form */}
+         <section className="space-y-16">
+         
 
 <form
   onSubmit={handleSubmit}
@@ -374,7 +373,7 @@ const fetchRecentSearches = async () => {
 >
   <h2 className="text-3xl font-bold text-gray-900 tracking-tight">📝 Post an Item</h2>
 
-  {/* Item Name */}
+ 
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
     <input
@@ -388,7 +387,7 @@ const fetchRecentSearches = async () => {
     />
   </div>
 
-  {/* Description */}
+  
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
     <textarea
@@ -402,7 +401,7 @@ const fetchRecentSearches = async () => {
     />
   </div>
 
-  {/* Category */}
+  
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
     <select
@@ -421,7 +420,6 @@ const fetchRecentSearches = async () => {
     </select>
   </div>
 
-  {/* Price & Contact */}
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
@@ -449,7 +447,6 @@ const fetchRecentSearches = async () => {
     </div>
   </div>
 
-  {/* File Upload */}
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
     <input
@@ -460,13 +457,12 @@ const fetchRecentSearches = async () => {
     />
   </div>
 
-  {/* Submit Button */}
   <div className="text-right">
     <button
       type="submit"
       className="bg-black text-white text-sm font-medium px-6 py-2 rounded-lg hover:bg-gray-900 transition"
     >
-      🚀 Post Item
+       Post Item
     </button>
   </div>
 </form>
@@ -669,20 +665,19 @@ const fetchRecentSearches = async () => {
 </div>
 
 
-            {/* Google Book Results */}
+
         <section
   id="campus-library"
   className="relative mt-24 max-w-screen-xl mx-auto px-6 py-14 rounded-2xl shadow-lg overflow-hidden
              bg-gradient-to-br from-neutral-50 via-white to-gray-100 border border-gray-200"
 >
-  {/* radial background accent (same trick as header) */}
+  
   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))]
                   from-gray-200/20 via-transparent to-transparent"></div>
 
-  {/* all content lives above the halo */}
+ 
   <div className="relative z-10">
 
-    {/* Title Block */}
     <div className="text-center mb-12">
       <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center justify-center gap-3">
         📚 Campus Library
@@ -692,7 +687,7 @@ const fetchRecentSearches = async () => {
       </p>
     </div>
 
-    {/* Search Bar */}
+ 
     <div className="flex flex-col sm:flex-row items-center gap-4 mb-12 max-w-2xl mx-auto">
       <input
         type="text"
@@ -711,7 +706,7 @@ const fetchRecentSearches = async () => {
       </button>
     </div>
 
-    {/* Helper Text */}
+    
     {!googleResults.length && googleSearch.trim() && (
       <p className="text-center text-sm text-gray-500 mt-12">
         No books found. Try another search term! 📚
@@ -723,7 +718,7 @@ const fetchRecentSearches = async () => {
       </p>
     )}
 
-    {/* Results */}
+ 
     {googleResults.length > 0 && (
       <div className="mt-12">
         <h3 className="text-2xl font-semibold text-center text-gray-800 mb-10">
@@ -772,7 +767,6 @@ const fetchRecentSearches = async () => {
           ))}
         </div>
 
-        {/* Load More Button */}
         {visibleCount < googleResults.length && (
           <div className="mt-12 flex justify-center">
             <button
@@ -793,9 +787,9 @@ const fetchRecentSearches = async () => {
 
           </section>
 
-          {/* RIGHT COLUMN (sticky) */}
+        
           <aside className="space-y-12 xl:sticky top-24 h-fit">
-            {/* Recent Searches */}
+        
 {recentSearches.length > 0 && (
   <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-2xl shadow-md px-6 py-5 mb-14 max-w-xl mx-auto">
     <h2 className="text-sm font-semibold text-gray-800 mb-3 tracking-tight flex items-center gap-1">
@@ -817,7 +811,6 @@ const fetchRecentSearches = async () => {
 )}
 
 
-            {/* Request Form */}
      <form
   onSubmit={handleSubmitTwo}
   className="bg-gradient-to-br from-neutral-50 via-white to-gray-100 border border-gray-200 rounded-2xl shadow-sm max-w-2xl mx-auto px-8 py-10 space-y-8"
@@ -825,14 +818,13 @@ const fetchRecentSearches = async () => {
   {/* Title */}
   <div className="text-center">
     <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center justify-center gap-2">
-      🎯 Request an Item
+      Request an Item
     </h2>
     <p className="text-sm text-gray-600 mt-1 max-w-md mx-auto">
       Need something specific? Let your campus know what you&apos;re looking for.
     </p>
   </div>
 
-  {/* Item Name */}
   <div>
     <label className="block text-sm font-medium text-gray-800 mb-2">
       Item Name
@@ -848,7 +840,6 @@ const fetchRecentSearches = async () => {
     />
   </div>
 
-  {/* Description */}
   <div>
     <label className="block text-sm font-medium text-gray-800 mb-2">
       Description
@@ -864,7 +855,6 @@ const fetchRecentSearches = async () => {
     />
   </div>
 
-  {/* Submit Button */}
   <div className="text-right">
     <button
       type="submit"
@@ -876,9 +866,6 @@ const fetchRecentSearches = async () => {
 </form>
 
 
-
-
-            {/* Request Cards */}
   <div className="mt-16 max-w-6xl mx-auto px-4">
   <section className="mt-24 max-w-6xl mx-auto px-4">
   <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center tracking-tight">
@@ -932,19 +919,17 @@ const fetchRecentSearches = async () => {
           </aside>
         </div>
 
-        {/* Chat Panel + Message Modal (portals / modals) stay outside grid */}
+       
         {isChatOpen && (
   <div className="fixed inset-0 z-50 flex">
-    {/* translucent backdrop */}
+   
     <div
       className="flex-1 bg-black/40 backdrop-blur-sm"
       onClick={closeChatBox}
     />
 
-    {/* chat panel */}
     <div className="w-full sm:w-[26rem] h-full bg-white border-l border-gray-200 shadow-xl flex flex-col animate-slide-in">
       
-      {/* header */}
       <div className="p-5 border-b border-gray-200 bg-white flex justify-between items-center">
         <h2 className="text-base font-semibold text-gray-900 truncate">
           💬 Chat with&nbsp;
@@ -961,7 +946,6 @@ const fetchRecentSearches = async () => {
         </button>
       </div>
 
-      {/* messages */}
       <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50">
         {chatMessages.map((msg, idx) => (
           <div
@@ -1013,7 +997,6 @@ const fetchRecentSearches = async () => {
         <div ref={bottomRef} />
       </div>
 
-      {/* composer */}
       <div className="p-4 border-t border-gray-200 bg-white space-y-3">
         <input
           type="text"
